@@ -96,7 +96,7 @@ void cross(String msg)
     }
     else if (ignore)
     {
-      pickData["type"] = "Rlvl1";
+      pickData["type"] = "Rlvl2";
       Serial.println(JSON.stringify(pickData));
       rrRingPick.send(pickData);
     }
@@ -128,7 +128,7 @@ void triangle(String msg)
 {
   if (!switchMode)
   {
-    pickData["type"] = "Rlvl2";
+    pickData["type"] = "Rlvl1";
     Serial.println(JSON.stringify(pickData));
     rrRingPick.send(pickData);
   }
@@ -142,12 +142,9 @@ void triangle(String msg)
 
 void square(String msg)
 {
-  if (!switchMode)
-  {
     pickData["type"] = "Slvl1";
     Serial.println(JSON.stringify(pickData));
     rrRingPick.send(pickData);
-  }
 }
 
 void up(String msg)
