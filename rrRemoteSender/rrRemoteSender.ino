@@ -6,15 +6,16 @@ long currentTime = 0;
 static long previousTime;
 bool rumble = false, done = true, opt = false, init_ = false, zeroCheck = false, pressed = false;
 bool autoDown = false, autoCompute = false, autoBase = false;
-bool setAllAnalog = false;
+bool setAllAnalog = false , prevclr=true;
 int  color = 2, fixedPWM, outPutX, outPutY ;
+
 void setup()
 {
 
   Serial.begin(115200);
   Serial2.begin(921600);
   initPS4("1e:22:22:22:22:11");
-  //  initPS4("08:00:27:EC:10:61");
+//    initPS4("08:00:27:EC:10:61");
   //  initPS4("22:22:22:22:22:22");
 
   getAllAnalog(setAllAnalog);
@@ -72,241 +73,275 @@ void setup()
 int lx, ly, rightX, rightY;
 void loop()
 {
-  if (color == 1)
-  {
-    PS4.setLed(255, 0, 0);
-  }
-  else if(color == 2)
-  {
-    PS4.setLed(0, 255, 0);
-  }
-      PS4.sendToController();
-      delay(10);
-  //Serial.println(PS4.Battery());
+    if (color == 1)
+    {
+      PS4.setLed(255, 0, 0);
+    }
+    else if (color == 2)
+    {
+      PS4.setLed(0, 255, 0);
+    }
+    else if (color ==3)
+    {
+      PS4.setLed(255,20,147);
+    }
+    PS4.sendToController();
+  delay(10);
+    //Serial.println(PS4.Battery());
+  
 }
 void rightjoystickX(int v)
 {
-  outPutX= v;
-  if(outPutX>30){
-    fixedPWM= 50;
+  outPutX = v;
+  if (outPutX > 30) {
+    fixedPWM = 50;
   }
-  else if (outPutX< -30){
-    fixedPWM= -50;
+  else if (outPutX < -30) {
+    fixedPWM = -50;
   }
   else
   {
-    fixedPWM=0;
+    fixedPWM = 0;
   }
   rightX = fixedPWM;
-  if(abs(outPutX) >= abs(outPutY))
+  if (abs(outPutX) >= abs(outPutY))
   {
     datastring = String(rightX) + "," + "0" + "," + "0" + "," + "\n";
     Serial2.print(datastring);
   }
-  else if(abs(outPutX)< abs(outPutY)){
+  else if (abs(outPutX) < abs(outPutY)) {
     datastring = "0," + String(rightY) + ",0," + "\n";
     Serial2.print(datastring);
   }
-//  rightX = map(rightX, 0, 125, 0, 50);
-//  if (abs(rightX) >= abs(rightY))
-//  {
-//    datastring = String(rightX) + "," + "0" + "," + "0" + "," + "\n";
-//    Serial2.print(datastring);
-//  }
-//  else if (abs(rightX) < abs(rightY))
-//  {
-//    datastring = "0," + String(rightY) + ",0," + "\n";
-//    Serial2.print(datastring);
-//  }
+  //  rightX = map(rightX, 0, 125, 0, 50);
+  //  if (abs(rightX) >= abs(rightY))
+  //  {
+  //    datastring = String(rightX) + "," + "0" + "," + "0" + "," + "\n";
+  //    Serial2.print(datastring);
+  //  }
+  //  else if (abs(rightX) < abs(rightY))
+  //  {
+  //    datastring = "0," + String(rightY) + ",0," + "\n";
+  //    Serial2.print(datastring);
+  //  }
   //  Serial.println("RightJoystick="+String(rightX)+","+String(rightY));
-//  Serial.println(datastring);
+  //  Serial.println(datastring);
 }
 void rightjoystickY(int v)
 {
   outPutY = v;
-  if(outPutY>30){
-    fixedPWM= 50;
+  if (outPutY > 30) {
+    fixedPWM = 50;
   }
-  else if (outPutY< -30){
-    fixedPWM= -50;
+  else if (outPutY < -30) {
+    fixedPWM = -50;
   }
   else
   {
-    fixedPWM=0;
+    fixedPWM = 0;
   }
   rightY =  fixedPWM;
-  if(abs(outPutX) >= abs(outPutY))
+  if (abs(outPutX) >= abs(outPutY))
   {
     datastring = String(rightX) + "," + "0" + "," + "0" + "," + "\n";
     Serial2.print(datastring);
   }
-  else if(abs(outPutX)< abs(outPutY)){
+  else if (abs(outPutX) < abs(outPutY)) {
     datastring = "0," + String(rightY) + ",0," + "\n";
     Serial2.print(datastring);
   }
-//  rightY = map(rightY, 0, 125, 0, 50);
-//  if (abs(rightX) >= abs(rightY))
-//  {
-//    datastring = String(rightX) + "," + "0" + "," + "0" + "," + "\n";
-//    Serial2.print(datastring);
-//  }
-//  else if (abs(rightX) < abs(rightY))
-//  {
-//    datastring = "0," + String(rightY) + ",0," + "\n";
-//    Serial2.print(datastring);
-//  }
+  //  rightY = map(rightY, 0, 125, 0, 50);
+  //  if (abs(rightX) >= abs(rightY))
+  //  {
+  //    datastring = String(rightX) + "," + "0" + "," + "0" + "," + "\n";
+  //    Serial2.print(datastring);
+  //  }
+  //  else if (abs(rightX) < abs(rightY))
+  //  {
+  //    datastring = "0," + String(rightY) + ",0," + "\n";
+  //    Serial2.print(datastring);
+  //  }
   //  Serial.println("RightJoystick="+String(rightX)+","+String(rightY));
-//  Serial.println(datastring);
+  //  Serial.println(datastring);
 }
 void l1Pressed()
 {
+  PS4.setRumble(0, 225);
   Serial2.print("lOne\n");
-  Serial.print("l1 Pressed\n");
+//  Serial.print("l1 Pressed\n");
 }
 void l1Released()
 {
-  Serial.print("l1 Released\n");
+  PS4.setRumble(0, 0);
+//  Serial.print("l1 Released\n");
 }
 
 void r1Pressed()
 {
+  PS4.setRumble(225, 0);
   Serial2.print("rOne\n");
-  Serial.print("r1 Pressed\n");
+//  Serial.print("r1 Pressed\n");
 }
 void r1Released()
 {
-  Serial.println("r1 Released");
+  PS4.setRumble(0, 0);
+//  Serial.println("r1 Released");
 }
 
 void crossPressed()
 {
   Serial2.print("cro\n");
-  Serial.print("crossPressed\n");
+//  Serial.print("crossPressed\n");
 }
 void crossReleased()
 {
-  Serial.print("crossReleased\n");
+//  Serial.print("crossReleased\n");
 }
 
 void circlePressed()
 {
   Serial2.print("cir\n");
-  Serial.print("circlePressed\n");
+//  Serial.print("circlePressed\n");
 }
 void circleReleased()
 {
-  Serial.print("circlePressed\n");
+//  Serial.print("circlePressed\n");
 }
 
 void trianglePressed()
 {
   Serial2.print("tri\n");
-  Serial.print("trianglePressed\n");
+//  Serial.print("trianglePressed\n");
 }
 void triangleReleased()
 {
-  Serial.print("triangleReleased\n");
+//  Serial.print("triangleReleased\n");
 }
 
 void sqaurePressed()
 {
   Serial2.print("squ\n");
-  Serial.print("sqaure pressed\n");
+//  Serial.print("sqaure pressed\n");
 }
 void sqaureReleased()
 {
-  Serial.print("sqaure Released\n");
+//  Serial.print("sqaure Released\n");
 }
 
 void upPressed()
 {
   Serial2.print("up\n");
-  Serial.print("up Pressed\n");
+//  Serial.print("up Pressed\n");
 }
 void upReleased()
 {
   // Serial2.print("rel\n");
-  Serial.print("up Released\n");
+//  Serial.print("up Released\n");
 }
 
 void downPressed()
 {
   Serial2.print("dow\n");
-  Serial.print("down Pressed\n");
+//  Serial.print("down Pressed\n");
 }
 void downReleased()
 {
   // Serial2.print("rel\n");
-  Serial.print("down Released\n");
+//  Serial.print("down Released\n");
 }
 
 void rightPressed()
 {
   Serial2.print("rig\n");
-  Serial.println("right");
+//  Serial.println("right");
 }
 void rightReleased()
 {
-  Serial.print("rightReleased\n");
+//  Serial.print("rightReleased\n");
 }
 
 void leftPressed()
 {
   Serial2.print("lef\n");
-  Serial.print("left Pressed\n");
+//  Serial.print("left Pressed\n");
 }
 void leftReleased()
 {
   // Serial2.print("rel\n");
-  Serial.print("left Released\n");
+//  Serial.print("left Released\n");
 }
 
 void sharePressed()
 {
   Serial2.print("share\n");
-  Serial.print("share Pressed\n");
+  if(color == 1)
+  {
+    color=3;
+  }
+  else if(color == 3)
+  {
+    color=1;
+  }
+//  Serial.print("share Pressed\n");
 }
 void shareReleased()
 {
-  Serial.print("share Released\n");
+//  Serial.print("share Released\n");
 }
 
 void optionPressed()
 {
   Serial2.print("opt\n");
-  Serial.print("option pressed\n");
-  if (color == 1)
+//  Serial.print("option pressed\n");
+  PS4.setRumble(225, 225);
+  if (color == 1 || color == 3)
   {
+    if(color==1)
+    {
+      prevclr=true;
+    }
+    else
+    {
+      prevclr= false;
+    }
     color = 2;
   }
-  else if(color == 2)
+  else if (color == 2)
   {
-    color = 1;
+    if(prevclr)
+    {
+      color=1;
+    }
+    else
+    {
+      color=3;
+    }
   }
 }
 void optionReleased()
 {
-  Serial.print("option Released\n");
+  PS4.setRumble(0, 0);
+//  Serial.print("option Released\n");
 }
 
 void psPressed()
 {
   Serial2.print("ps\n");
-  Serial.print("ps\n");
+//  Serial.print("ps\n");
 }
 void psReleased()
 {
-  Serial.print("ps Released\n");
+//  Serial.print("ps Released\n");
 }
 
 void touchpadPressed()
 {
   Serial2.print("tpad\n");
-  Serial.print("touchpad pressed\n");
+//  Serial.print("touchpad pressed\n");
 }
 void touchpadReleased()
 {
-  Serial.print("touchpad Released\n");
+//  Serial.print("touchpad Released\n");
 }
 void base(int x, int y, int r)
 {
