@@ -181,34 +181,16 @@ void down(String msg)
 
 void right(String msg)
 {
-  //  if (!switchMode)
-  //  {
   pickData["type"] = "Sexdp";
   Serial.println(JSON.stringify(pickData));
   rrRingPick.send(pickData);
-  //  }
-  //  else if (switchMode)
-  //  {
-  //    shooterData["type"] = "Anglr";
-  //    Serial.println(JSON.stringify(shooterData));
-  //    rrRotation.send(shooterData);
-  //  }
 }
 
 void left(String msg)
-{
-  //  if (!switchMode)
-  //  {
+{ 
   pickData["type"] = "Sexdn";
   Serial.println(JSON.stringify(pickData));
   rrRingPick.send(pickData);
-  //  }
-  //  else if (switchMode)
-  //  {
-  //    shooterData["type"] = "Angll";
-  //    Serial.println(JSON.stringify(shooterData));
-  //    rrRotation.send(shooterData);
-  //  }
 }
 
 void share(String msg)
@@ -218,6 +200,12 @@ void share(String msg)
     pickData["type"] = "servoSet";
     Serial.println(JSON.stringify(pickData));
     rrRingPick.send(pickData);
+  }
+  else if(switchMode)
+  {
+    shooterData["type"] = "chngbldc";
+    Serial.println(JSON.stringify(shooterData));
+    rrShooter.send(shooterData);
   }
 }
 
