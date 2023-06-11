@@ -26,14 +26,19 @@
 #include <positionalnew.h>
 #include <ESP32Servo.h>
 
-Servo servotx, servorx;
+Servo rightServo, leftServo;
 
 Peer remote;
+Peer rrShooter;
 JSONVar feedback;
-Motor leftMotor(4, 18);
-Motor rightMotor(19, 21);
-UniversalEncoder rightEncoder(25, 33, -1);
-UniversalEncoder leftEncoder(26, 27, 1);
+//Motor leftMotor(4, 18);
+//Motor rightMotor(19, 21);
+//UniversalEncoder rightEncoder(25, 33, -1);
+//UniversalEncoder leftEncoder(26, 27, 1);
+Motor leftMotor(23, 22);
+Motor rightMotor(19, 18 );
+UniversalEncoder rightEncoder(32, 33, -1);
+UniversalEncoder leftEncoder(26, 25 , -1);
 //Motor leftMotor(32,33);
 //Motor rightMotor(25,26);
 //UniversalEncoder rightEncoder(34,35, -1);
@@ -46,15 +51,15 @@ double SoftKpLeft = 0.75, SoftKiLeft = 0.0, SoftKdLeft = 0;
 double AggKpRight = 0.90, AggKiRight = 0.0, AggKdRight = 0;
 double SoftKpRight = 0.675, SoftKiRight = 0, SoftKdRight = 0;
 
-int rightLsUp = 14, rightLsDown = 23, leftLsUp = 22, leftLsDown = 13, pneumaticPin = 32;
+int rightLsUp = 17, leftLsUp = 4, pneumaticPin = 21;
 int resetPulse = -50000, pulseDiff = 100, degreeDiff = 5;
-int rxpin = 16, txpin = 17, degree, rakPWM = 0, pwmdiff = 5;
-int degOffSet = 10;
-
-long rightPulse = 0, leftPulse = 0, rLvl2Pulse = 1478, rLvl1Pulse = 0, rightDiffPulse, leftDiffPulse;
+int rightServoPin = 27, leftServoPin = 13 , degree, rakPWM = 0, pwmdiff = 5;
+int degOffSet = -10 ,pulseoffset = -50;
+int rlvl = 0;
+long rightPulse = 0, leftPulse = 0, rLvl2Pulse = 1600, rLvl1Pulse = 0, rightDiffPulse, leftDiffPulse;
 
 bool rLs1 = false, rLs2 = false, lLs1 = false, lLs2 = false;
-bool init_ = false;
+bool init_ = false, upBool = false;
 bool pnOC = true , startLvl1 = false , startLvl2 = false, intiUpperLimitLeft = false , intiUpperLimitRight = false, intiLowerLimitLeft = false , intiLowerLimitRight = false;
 int currLeft, currRight;
 void setup()
@@ -62,29 +67,28 @@ void setup()
   Serial.begin(115200);
   pinMode(pneumaticPin, OUTPUT);
   pinMode(rightLsUp, INPUT_PULLUP);
-  pinMode(rightLsDown, INPUT_PULLUP);
   pinMode(leftLsUp, INPUT_PULLUP);
-  pinMode(leftLsDown, INPUT_PULLUP);
 
-  servotx.attach(txpin);
-  servorx.attach(rxpin);
+  rightServo.attach(rightServoPin);
+  leftServo.attach(leftServoPin);
 
-  //  leftMotor.invertDirection();
+  leftMotor.invertDirection();
   leftMotor.setEncoder(&leftEncoder);
   rightMotor.setEncoder(&rightEncoder);
 
   //rightMPID.setThreshold(100);
-  rightMPID.setOutputLimits(-25, 25);
+  rightMPID.setOutputLimits(-35, 35);
   rightMPID.setAggTunings(AggKpLeft, AggKiLeft, AggKdLeft);
   rightMPID.setSoftTunings(SoftKpLeft, SoftKiLeft, SoftKdLeft);
 
   //leftMPID.setThreshold(100);
-  leftMPID.setOutputLimits(-25, 25);
+  leftMPID.setOutputLimits(-35, 35);
   leftMPID.setAggTunings(AggKpRight, AggKiRight, AggKdRight);
   leftMPID.setSoftTunings(SoftKpRight, SoftKiRight, SoftKdRight);
 
   setId("PiCSR");
   remote.init("ReCON");
+   rrShooter.init("RsHTr");
 
 
   remote.setOnRecieve(rackLvl1, "Rlvl1");
@@ -98,27 +102,25 @@ void setup()
   remote.setOnRecieve(pneumaticOC, "pnpicking");
   remote.setOnRecieve(servoSetting, "servoSet");
   remote.setOnRecieve(stopBot, "stopBot");
-  // remote.setOnRecieve(pneumaticOpen, "pnopn");
-  // remote.setOnRecieve(pneumaticClose, "pncls");
   remote.setOnRecieve(resetAll, "rst");
+//  rrShooter.setOnRecieve(autoServo, "pnCls");
+//  rrShooter.setOnRecieve(autoServo2, "pnOpn");
 }
 void loop()
 {
   if (Serial.available() > 0) {
     degree = Serial.readString().toInt();
-    servorx.write(degree);
-    servotx.write(180 - degree);
+    leftServo.write(degree);
+    rightServo.write(180 - degree);
     Serial.println(String(degree));
   }
 
   leftPulse = leftMotor.getReadings();
   rightPulse = rightMotor.getReadings();
-  //    Serial.println("left: " + String(leftPulse) + " right: " + String(rightPulse));
+//  Serial.println("left: " + String(leftPulse) + " right: " + String(rightPulse));
   rLs1 = !(bool)digitalRead(rightLsUp);
-  rLs2 = !(bool)digitalRead(rightLsDown);
   lLs1 = !(bool)digitalRead(leftLsUp);
-  lLs2 = !(bool)digitalRead(leftLsDown);
-  //      Serial.println(String(rLs1)+" "+String(rLs2)+" "+String(lLs1)+" "+String(lLs2)+" ");
+//  Serial.println(String(rLs1) + " " + String(lLs1));
 
   if (!init_)
   {
@@ -157,6 +159,14 @@ void loop()
 
     }
   }
+  if (rlvl == 2 && leftPulse >= 500 && rightPulse >= 500)
+  {
+    degree = 35;
+    leftServo.write(degree);
+    rightServo.write(180 - degree - degOffSet);
+    Serial.println(String(degree) + "servo2 automated");
+    rlvl = 0;
+  }
   rightMPID.compute();
   leftMPID.compute();
 
@@ -167,44 +177,64 @@ void rackLvl1(JSONVar msg)
   //  leftMPID.setPulse(rLvl1Pulse);
   //  rightMPID.setPulse(rLvl1Pulse);
   Serial.println("rak1");
+  rightMPID.setThreshold(rLvl2Pulse / 2);
+  rightMPID.setOutputLimits(-45, 45);
+  rightMPID.setAggTunings(AggKpLeft, AggKiLeft, AggKdLeft);
+  rightMPID.setSoftTunings(SoftKpLeft, SoftKiLeft, SoftKdLeft);
+
+  leftMPID.setThreshold(rLvl2Pulse / 2);
+  leftMPID.setOutputLimits(-45, 45);
+  leftMPID.setAggTunings(AggKpRight, AggKiRight, AggKdRight);
+  leftMPID.setSoftTunings(SoftKpRight, SoftKiRight, SoftKdRight);
   startLvl1 = false ;
   startLvl2 = false;
   intiUpperLimitLeft = false;
   intiUpperLimitRight = false;
   intiLowerLimitLeft = false;
   intiLowerLimitRight = false;
+  //  rlvl = 1;
   init_ = false;
 }
 void rackLvl2(JSONVar msg)
 {
-  leftMPID.setPulse(rLvl2Pulse + 50);
+  rightMPID.setThreshold(rLvl2Pulse / 2);
+  rightMPID.setOutputLimits(-40, 40);
+  rightMPID.setAggTunings(AggKpLeft, AggKiLeft, AggKdLeft);
+  rightMPID.setSoftTunings(SoftKpLeft, SoftKiLeft, SoftKdLeft);
+
+  leftMPID.setThreshold(rLvl2Pulse / 2);
+  leftMPID.setOutputLimits(-40, 40);
+  leftMPID.setAggTunings(AggKpRight, AggKiRight, AggKdRight);
+  leftMPID.setSoftTunings(SoftKpRight, SoftKiRight, SoftKdRight);
+  leftMPID.setPulse(rLvl2Pulse + pulseoffset);
   rightMPID.setPulse(rLvl2Pulse);
+  rlvl = 2;
   Serial.println("rac2");
 }
 void servoLvl1(JSONVar msg)
 {
-  degree = 105;
-  servorx.write(degree);
-  servotx.write(180 - degree  - degOffSet);
-  Serial.println("servo1");
+  degree = 80;
+  leftServo.write(degree);
+  rightServo.write(180 - degree  - degOffSet);
+  Serial.println(String(degree) + " servo1");
 }
 void servoLvl2(JSONVar msg)
 {
-  degree = 55;
-  servorx.write(degree);
-  servotx.write(180 - degree - degOffSet);
-  Serial.println("servo2");
+  degree = 40;
+  leftServo.write(degree);
+  rightServo.write(180 - degree - degOffSet);
+  Serial.println(String(degree) + "servo2");
 }
 void rackExtraNPulse(JSONVar msg)
 {
-  rightMPID.setThreshold(rightPulse + 50);
-  rightMPID.setOutputLimits(-40, 40);
+  rightMPID.setThreshold(rightPulse + (pulseDiff / 2));
+  rightMPID.setOutputLimits(-50, 50);
   rightMPID.setAggTunings(AggKpLeft, AggKiLeft, AggKdLeft);
   rightMPID.setSoftTunings(SoftKpLeft, SoftKiLeft, SoftKdLeft);
   rightMPID.setPulse(rightPulse + pulseDiff);
 
-  leftMPID.setThreshold(leftPulse + 50);
-  leftMPID.setOutputLimits(-40, 40);
+  leftMPID.setThreshold(leftPulse + (pulseDiff / 2));
+  leftMPID.setOutputLimits(-50, 50);
   leftMPID.setAggTunings(AggKpRight, AggKiRight, AggKdRight);
   leftMPID.setSoftTunings(SoftKpRight, SoftKiRight, SoftKdRight);
   leftMPID.setPulse(leftPulse + pulseDiff);
@@ -212,48 +242,50 @@ void rackExtraNPulse(JSONVar msg)
 }
 void rackExtraPPulse(JSONVar msg)
 {
-  rightMPID.setThreshold(rightPulse + 50);
-  rightMPID.setOutputLimits(-40, 40);
+  rightMPID.setThreshold(rightPulse - (pulseDiff / 2));
+  rightMPID.setOutputLimits(-50, 50);
   rightMPID.setAggTunings(AggKpLeft, AggKiLeft, AggKdLeft);
   rightMPID.setSoftTunings(SoftKpLeft, SoftKiLeft, SoftKdLeft);
-  rightDiffPulse = ((rightPulse - pulseDiff) < 0) ? 0 : (rightPulse - pulseDiff);
-  rightMPID.setPulse(rightDiffPulse);
+  //  rightDiffPulse = ((rightPulse - pulseDiff) < 0) ? 0 : (rightPulse - pulseDiff);
+  //  rightMPID.setPulse(rightDiffPulse);
+  rightMPID.setPulse(rightPulse - pulseDiff);
 
-  leftMPID.setThreshold(leftPulse + 50);
-  leftMPID.setOutputLimits(-40, 40);
+  leftMPID.setThreshold(leftPulse - (pulseDiff / 2));
+  leftMPID.setOutputLimits(-50, 50);
   leftMPID.setAggTunings(AggKpRight, AggKiRight, AggKdRight);
   leftMPID.setSoftTunings(SoftKpRight, SoftKiRight, SoftKdRight);
-  leftDiffPulse = ((leftPulse - pulseDiff) < 0) ? 0 : (leftPulse - pulseDiff);
-  leftMPID.setPulse(leftDiffPulse);
-
+  //  leftDiffPulse = ((leftPulse - pulseDiff) < 0) ? 0 : (leftPulse - pulseDiff);
+  //  leftMPID.setPulse(leftDiffPulse);
+  leftMPID.setPulse(leftPulse - pulseDiff);
   Serial.println("extra rak neg");
 }
 void servoExtraPDeg(JSONVar msg)
 {
+
   degree = degree + degreeDiff;
   degree = degree > 180 ? 180 : degree;
-  servorx.write(degree);
-  servotx.write(180 - degree - degOffSet);
-  Serial.println("extra servo pos");
+  leftServo.write(degree);
+  rightServo.write(180 - degree - degOffSet);
+  Serial.println(String(degree) + "extra servo pos");
 }
 void servoExtraNDeg(JSONVar msg)
 {
   degree = degree - degreeDiff;
   degree = degree < 0 ? 0 : degree;
-  servorx.write(degree);
-  servotx.write(180 - degree - degOffSet);
-  Serial.println("extra servo neg");
+  leftServo.write(degree);
+  rightServo.write(180 - degree - degOffSet);
+  Serial.println(String(degree) + "extra servo neg");
 }
 void pneumaticOC(JSONVar msg)
 {
   if (pnOC == true) {
     Serial.println("Pneumatic Open");
-    digitalWrite(32, HIGH);
+    digitalWrite(21, HIGH);
     pnOC = false;
   }
   else if (pnOC == false) {
     Serial.println("Pneumatic Close");
-    digitalWrite(32, LOW);
+    digitalWrite(21, LOW);
     pnOC = true;
   }
   Serial.println(JSON.stringify(msg));
@@ -268,16 +300,39 @@ void resetAll(JSONVar msg)
   intiLowerLimitLeft = false;
   intiLowerLimitRight = false;
   init_ = false;
+  rightMPID.setOutputLimits(-30, 30);
+  rightMPID.setAggTunings(AggKpLeft, AggKiLeft, AggKdLeft);
+  rightMPID.setSoftTunings(SoftKpLeft, SoftKiLeft, SoftKdLeft);
+
+  leftMPID.setOutputLimits(-30, 30);
+  leftMPID.setAggTunings(AggKpRight, AggKiRight, AggKdRight);
+  leftMPID.setSoftTunings(SoftKpRight, SoftKiRight, SoftKdRight);
   Serial.println("rst");
 }
+
 void stopBot(JSONVar msg)
 {
   leftMPID.setPulse(leftPulse);
   rightMPID.setPulse(rightPulse);
 }
 void servoSetting(JSONVar msg) {
-  degree = 0;
-  servorx.write(degree);
-  servotx.write(180 - degree - degOffSet);
+  degree = 115;
+  leftServo.write(degree);
+  rightServo.write(180 - degree - degOffSet);
   Serial.println("servo2");
 }
+/*
+void autoServo(JSONVar msg)
+{
+  degree = degree - 15;
+  leftServo.write(degree);
+  rightServo.write(180 - degree);
+  Serial.print("Degree "+String(degree));
+}
+void autoServo2(JSONVar msg)
+{
+  degree = degree + 15;
+  leftServo.write(degree);
+  rightServo.write(180 - degree);
+  Serial.print("Degree "+String(degree));
+}*/
